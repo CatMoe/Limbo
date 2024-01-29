@@ -1,0 +1,81 @@
+package net.miaomoe.limbo.motd
+
+import net.kyori.adventure.text.Component
+import net.miaomoe.blessing.fallback.handler.FallbackHandler
+import net.miaomoe.blessing.fallback.handler.motd.FallbackMotdHandler
+import net.miaomoe.blessing.fallback.handler.motd.MotdInfo
+import net.miaomoe.blessing.fallback.util.ComponentUtil.toComponent
+import net.miaomoe.blessing.fallback.util.ComponentUtil.toLegacyText
+import net.miaomoe.limbo.LimboBootstrap
+import net.miaomoe.limbo.LimboConfig
+import org.apache.logging.log4j.Level
+import java.io.File
+import java.io.FileNotFoundException
+import java.net.URL
+import java.net.URLEncoder
+import javax.imageio.ImageIO
+
+@Suppress("unused")
+class MotdHandler(private val config: LimboConfig.MotdConfig) : FallbackMotdHandler {
+
+    private lateinit var description: Component
+    private lateinit var brand: String
+    private var sample = config.sample
+    private var favicon: MotdInfo.Favicon? = null
+    private var online = config.online
+    private var max = config.max
+
+    init {
+        reload()
+    }
+
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun reload() {
+        this.description = config.description.toComponent()
+        this.brand = config.brand.toComponent().toLegacyText()
+        this.sample = config.sample
+        this.online = config.online
+        this.max = config.max
+        this.favicon = parseFavicon(config.icon)
+    }
+
+    private fun parseFavicon(value: String): MotdInfo.Favicon? {
+        val logger = LimboBootstrap.logger
+        when {
+            value.isEmpty() -> logger.log(Level.INFO, "Favicon set to empty.")
+            value.startsWith("[url]") -> {
+                val url = URLEncoder.encode(value.removePrefix("[url]"), "utf-8")
+                try {
+                    logger.log(Level.INFO, "Reading image from $url ...")
+                    val favicon = MotdInfo.Favicon(ImageIO.read(URL(url)))
+                    logger.log(Level.INFO, "Successfully processed favicon.")
+                    return favicon
+                } catch (exception: Exception) {
+                    logger.log(Level.WARN, "Failed to download and process favicon. set it with empty.", exception)
+                }
+            }
+            value.startsWith("[file]") -> {
+                val file = File(value.removePrefix("[file]"))
+                try {
+                    if (!file.exists() || !file.isFile) throw FileNotFoundException("File is not exists or it is folder!")
+                    val favicon = MotdInfo.Favicon(ImageIO.read(file))
+                    logger.log(Level.INFO, "Successfully processed favicon.")
+                    return favicon
+                } catch (exception: Exception) {
+                    logger.log(Level.WARN, "Failed to get favicon from ${file.absolutePath}", exception)
+                }
+            }
+            value.startsWith("[encoded]") -> MotdInfo.Favicon(value.removePrefix("[encoded]"))
+            else -> logger.log(Level.WARN, "Invalid input: $value. Set favicon to empty.")
+        }
+        return null
+    }
+
+    override fun handle(handler: FallbackHandler) =
+        MotdInfo(
+            MotdInfo.VersionInfo(brand, if (config.showBrand) -1 else handler.version.protocolId),
+            if (config.unknown) null else MotdInfo.PlayerInfo(max, online, sample.map { MotdInfo.Sample(it.toComponent()) }),
+            description, favicon
+        )
+
+}
