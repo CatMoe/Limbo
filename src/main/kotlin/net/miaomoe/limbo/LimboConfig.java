@@ -30,7 +30,9 @@ public class LimboConfig extends AbstractConfig {
     @Path
     public boolean debug = false;
 
+    @SuppressWarnings("SpellCheckingInspection")
     @Path
+    @Description(description = "overworld, nether, the_end")
     @NotNull
     public World world = World.OVERWORLD;
 

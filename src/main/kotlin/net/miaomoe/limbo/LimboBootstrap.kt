@@ -65,6 +65,7 @@ class LimboBootstrap private constructor() : ExceptionHandler {
     val motdHandler = MotdHandler(config.motd)
     val initializer = FallbackSettings
         .create()
+        .setWorld(config.world)
         .setMotdHandler(motdHandler)
         .setBrand(config.brand)
         .setPlayerName(config.playerName)
@@ -94,9 +95,14 @@ class LimboBootstrap private constructor() : ExceptionHandler {
         .buildInitializer()
 
     fun reload() {
-        ConfigUtil.saveAndRead(File("config.conf"), config)
+        try {
+            ConfigUtil.saveAndRead(File("config.conf"), config)
+        } catch (exception: Exception) {
+            logger.log(Level.WARN, "Failed to reload.", exception)
+        }
         motdHandler.reload()
         initializer.settings
+            .setWorld(config.world)
             .setBrand(config.brand)
             .setPlayerName(config.playerName)
             .setDisableFall(config.disableFall)
@@ -104,6 +110,7 @@ class LimboBootstrap private constructor() : ExceptionHandler {
             .setJoinPosition(config.position.let { PlayerPosition(Position(it.x, it.y, it.z), it.yaw, it.pitch, false) })
             .setDebugLogger(if (config.debug) java.util.logging.Logger.getAnonymousLogger() else null)
         initializer.refreshCache()
+        logger.log(Level.INFO, "Reloaded.")
     }
 
     fun newBootstrap(address: InetSocketAddress, group: EventLoopGroup = loopGroup): ChannelFuture {
@@ -144,10 +151,7 @@ class LimboBootstrap private constructor() : ExceptionHandler {
                                 players.takeIf { string -> string.isNotEmpty() }?.let { string -> logger.log(Level.INFO, "Players: $string") }
                             }
                         }
-                        "reload" -> {
-                            reload()
-                            logger.log(Level.INFO, "Reloaded.")
-                        }
+                        "reload" -> reload()
                         else -> logger.log(Level.INFO, "Unknown command. available commands: stop, status, reload")
                     }
                 }} ?: exitProcess(0)
