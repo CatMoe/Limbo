@@ -61,7 +61,10 @@ class LimboBootstrap private constructor() : ExceptionHandler {
         }
     }
 
-    val config = LimboConfig()
+    val config = LimboConfig().let {
+        ConfigUtil.saveAndRead(File("config.conf"), it)
+        it
+    }
     val motdHandler = MotdHandler(config.motd)
     val initializer = FallbackSettings
         .create()
@@ -109,6 +112,7 @@ class LimboBootstrap private constructor() : ExceptionHandler {
             .setTimeout(config.timeout)
             .setJoinPosition(config.position.let { PlayerPosition(Position(it.x, it.y, it.z), it.yaw, it.pitch, false) })
             .setDebugLogger(if (config.debug) java.util.logging.Logger.getAnonymousLogger() else null)
+        initializer.settings.cacheMap.clear()
         initializer.refreshCache()
         logger.log(Level.INFO, "Reloaded.")
     }
@@ -194,9 +198,7 @@ class LimboBootstrap private constructor() : ExceptionHandler {
         fun main(args: Array<String>) {
             System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager")
             val bootstrap = LimboBootstrap()
-            val configFile = File("config.conf")
             val config = bootstrap.config
-            ConfigUtil.saveAndRead(configFile, config)
             try {
                 for (port in config.port) {
                     val address = InetSocketAddress(config.address, port)

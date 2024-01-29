@@ -7,7 +7,6 @@ import net.miaomoe.blessing.nbt.dimension.World;
 import net.miaomoe.limbo.fallback.ForwardHandler;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -104,7 +103,7 @@ public class LimboConfig extends AbstractConfig {
         })
         public String icon = "";
         @Path
-        public List<String> sample = new ArrayList<>();
+        public List<String> sample = Collections.singletonList("<light_purple>https://github.com/CatMoe/Limbo");
     }
 
 }
