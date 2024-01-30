@@ -4,8 +4,10 @@ import net.kyori.adventure.text.Component
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.fallback.handler.motd.FallbackMotdHandler
 import net.miaomoe.blessing.fallback.handler.motd.MotdInfo
+import net.miaomoe.blessing.fallback.util.ComponentUtil
 import net.miaomoe.blessing.fallback.util.ComponentUtil.toComponent
 import net.miaomoe.blessing.fallback.util.ComponentUtil.toLegacyText
+import net.miaomoe.blessing.protocol.version.Version
 import net.miaomoe.limbo.LimboBootstrap
 import net.miaomoe.limbo.LimboConfig
 import org.apache.logging.log4j.Level
@@ -18,7 +20,8 @@ import javax.imageio.ImageIO
 @Suppress("unused")
 class MotdHandler(private val config: LimboConfig.MotdConfig) : FallbackMotdHandler {
 
-    private lateinit var description: Component
+    private lateinit var modernDescription: Component
+    private lateinit var legacyDescription: Component
     private lateinit var brand: String
     private var sample = config.sample
     private var favicon: MotdInfo.Favicon? = null
@@ -31,7 +34,8 @@ class MotdHandler(private val config: LimboConfig.MotdConfig) : FallbackMotdHand
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun reload() {
-        this.description = config.description.toComponent()
+        this.modernDescription = config.description.toComponent()
+        this.legacyDescription = ComponentUtil.legacy.deserialize(modernDescription.toLegacyText())
         this.brand = config.brand.toComponent().toLegacyText()
         this.sample = config.sample
         this.online = config.online
@@ -75,7 +79,7 @@ class MotdHandler(private val config: LimboConfig.MotdConfig) : FallbackMotdHand
         MotdInfo(
             MotdInfo.VersionInfo(brand, if (config.showBrand) -1 else handler.version.protocolId),
             if (config.unknown) null else MotdInfo.PlayerInfo(max, online, sample.map { MotdInfo.Sample(it.toComponent()) }),
-            description, favicon
+            if (handler.version.moreOrEqual(Version.V1_16)) modernDescription else legacyDescription, favicon
         )
 
 }
