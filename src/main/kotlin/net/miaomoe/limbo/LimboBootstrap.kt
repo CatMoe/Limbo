@@ -28,7 +28,6 @@ import net.miaomoe.limbo.event.FallbackConnectEvent
 import net.miaomoe.limbo.event.FallbackDisconnectEvent
 import net.miaomoe.limbo.fallback.ConnectLoggerHandler
 import net.miaomoe.limbo.fallback.DisconnectHandler
-import net.miaomoe.limbo.fallback.KeepAliveScheduler
 import net.miaomoe.limbo.fallback.TrafficHandler
 import net.miaomoe.limbo.motd.MotdHandler
 import org.apache.logging.log4j.Level
@@ -76,17 +75,15 @@ class LimboBootstrap private constructor() : ExceptionHandler {
         .setTimeout(config.timeout)
         .setJoinPosition(config.position.let { PlayerPosition(Position(it.x, it.y, it.z), it.yaw, it.pitch, false) })
         .setDebugLogger(if (config.debug) java.util.logging.Logger.getAnonymousLogger() else null)
+        .setAliveScheduler(true)
+        .setAliveDelay(config.delay)
         .setInitListener { fallback, channel ->
             val logger = if (config.debug) null else logger
             val pipeline = channel.pipeline()
-            val keepAlive = KeepAliveScheduler(config.delay, fallback)
             pipeline
                 .addBefore(FallbackInitializer.HANDLER, "limbo-connect-logger", ConnectLoggerHandler(fallback, logger))
-                .addAfter(FallbackInitializer.HANDLER, "limbo-keep-alive", keepAlive)
                 .addAfter(FallbackInitializer.HANDLER, "limbo-disconnect-handler", DisconnectHandler(logger, fallback) {
                     connections.value.remove(it)
-                    keepAlive.cancel()
-                    pipeline.remove(KeepAliveScheduler::class.java)
                     EventManager.call(FallbackDisconnectEvent(fallback))
                 })
                 .addFirst("limbo-traffic-counter", TrafficHandler)
