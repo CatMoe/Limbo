@@ -30,6 +30,7 @@
     </repositories>
 
     <build>
+        <finalName>Limbo</finalName>
         <sourceDirectory>src/main/kotlin</sourceDirectory>
         <plugins>
             <plugin>

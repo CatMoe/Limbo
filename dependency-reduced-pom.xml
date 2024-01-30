@@ -7,6 +7,7 @@
   <version>${blessing.version}</version>
   <build>
     <sourceDirectory>src/main/kotlin</sourceDirectory>
+    <finalName>Limbo</finalName>
     <plugins>
       <plugin>
         <groupId>org.jetbrains.kotlin</groupId>
