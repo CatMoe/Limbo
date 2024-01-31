@@ -18,7 +18,7 @@ import org.apache.logging.log4j.Logger
 
 class ConnectHandler(
     val fallback: FallbackHandler,
-    val config: LimboConfig,
+    private val config: LimboConfig,
     private val logger: Logger? = null
 ) : ChannelDuplexHandler() {
 
