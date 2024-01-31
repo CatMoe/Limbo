@@ -92,7 +92,7 @@ public class LimboConfig extends AbstractConfig {
         public int max = 0;
         @Path
         public int online = 0;
-        @Path
+        @Path(path = "show-brand")
         public boolean showBrand = false;
         @Path
         @Description(description = {

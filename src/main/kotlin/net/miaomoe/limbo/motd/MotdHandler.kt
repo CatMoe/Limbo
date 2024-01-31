@@ -4,9 +4,9 @@ import net.kyori.adventure.text.Component
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.fallback.handler.motd.FallbackMotdHandler
 import net.miaomoe.blessing.fallback.handler.motd.MotdInfo
-import net.miaomoe.blessing.fallback.util.ComponentUtil
-import net.miaomoe.blessing.fallback.util.ComponentUtil.toComponent
-import net.miaomoe.blessing.fallback.util.ComponentUtil.toLegacyText
+import net.miaomoe.blessing.protocol.util.ComponentUtil
+import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
+import net.miaomoe.blessing.protocol.util.ComponentUtil.toLegacyText
 import net.miaomoe.blessing.protocol.version.Version
 import net.miaomoe.limbo.LimboBootstrap
 import net.miaomoe.limbo.LimboConfig

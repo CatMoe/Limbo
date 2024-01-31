@@ -18,7 +18,7 @@ import net.miaomoe.blessing.fallback.config.FallbackSettings
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.fallback.handler.FallbackInitializer
 import net.miaomoe.blessing.fallback.handler.exception.ExceptionHandler
-import net.miaomoe.blessing.fallback.util.ComponentUtil.toComponent
+import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
 import net.miaomoe.blessing.nbt.chat.MixedComponent
 import net.miaomoe.blessing.protocol.registry.State
 import net.miaomoe.blessing.protocol.util.PlayerPosition
