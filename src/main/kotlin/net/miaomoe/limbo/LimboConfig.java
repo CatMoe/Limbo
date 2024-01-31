@@ -106,4 +106,77 @@ public class LimboConfig extends AbstractConfig {
         public List<String> sample = Collections.singletonList("<light_purple>https://github.com/CatMoe/Limbo");
     }
 
+    @Path
+    @NotNull
+    public JoinMessageConfig message = new JoinMessageConfig();
+
+    public static class JoinMessageConfig extends AbstractConfig {
+
+        private JoinMessageConfig() {}
+
+        @Path
+        @NotNull
+        @Description(description = {
+                "Write the chat message for player that joining.",
+                "Set to empty to disable this feature."
+        })
+        public List<String> chat = Collections.emptyList();
+
+        @Path
+        @NotNull
+        @Description(description = {
+                "Write the actionbar message for player that joining.",
+                "This feature only works on 1.8+",
+                "",
+                "Set to empty to disable this feature."
+        })
+        public String actionBar = "";
+
+        @Path
+        @NotNull
+        @Description(description = {
+                "Write the title message for player that joining.",
+                "This feature only works on 1.8+",
+                "",
+                "setting the fadeIn, stay, fadeOut to 0 to disable."
+        })
+        public TitleConfig title = new TitleConfig();
+
+        public static class TitleConfig extends AbstractConfig {
+
+            private TitleConfig() {}
+
+            @Path
+            @NotNull
+            public String title = "";
+            @Path(path = "sub-title")
+            @NotNull
+            public String subTitle = "";
+            @Path(path = "fade-in")
+            public int fadeIn = 0;
+            @Path
+            public int stay = 0;
+            @Path(path = "fade-out")
+            public int fadeOut = 0;
+        }
+
+        @Path
+        @NotNull
+        @Description(description = "Configuration about tab header & footer. (Works on 1.8+)")
+        public TabConfig tab = new TabConfig();
+
+        public static class TabConfig extends AbstractConfig {
+
+            private TabConfig() {}
+
+            @Path
+            @NotNull
+            public List<String> header = Collections.emptyList();
+            @Path
+            @NotNull
+            public List<String> footer = Collections.emptyList();
+        }
+
+    }
+
 }

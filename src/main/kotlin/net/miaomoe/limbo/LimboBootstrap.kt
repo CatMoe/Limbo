@@ -18,15 +18,15 @@ import net.miaomoe.blessing.fallback.config.FallbackSettings
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.fallback.handler.FallbackInitializer
 import net.miaomoe.blessing.fallback.handler.exception.ExceptionHandler
-import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
 import net.miaomoe.blessing.nbt.chat.MixedComponent
 import net.miaomoe.blessing.protocol.registry.State
+import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
 import net.miaomoe.blessing.protocol.util.PlayerPosition
 import net.miaomoe.blessing.protocol.util.Position
 import net.miaomoe.limbo.event.ConsoleInputEvent
 import net.miaomoe.limbo.event.FallbackConnectEvent
 import net.miaomoe.limbo.event.FallbackDisconnectEvent
-import net.miaomoe.limbo.fallback.ConnectLoggerHandler
+import net.miaomoe.limbo.fallback.ConnectHandler
 import net.miaomoe.limbo.fallback.DisconnectHandler
 import net.miaomoe.limbo.fallback.TrafficHandler
 import net.miaomoe.limbo.motd.MotdHandler
@@ -81,7 +81,7 @@ class LimboBootstrap private constructor() : ExceptionHandler {
             val logger = if (config.debug) null else logger
             val pipeline = channel.pipeline()
             pipeline
-                .addBefore(FallbackInitializer.HANDLER, "limbo-connect-logger", ConnectLoggerHandler(fallback, logger))
+                .addBefore(FallbackInitializer.HANDLER, "limbo-connect-handler", ConnectHandler(fallback, config, logger))
                 .addAfter(FallbackInitializer.HANDLER, "limbo-disconnect-handler", DisconnectHandler(logger, fallback) {
                     connections.value.remove(it)
                     EventManager.call(FallbackDisconnectEvent(fallback))
