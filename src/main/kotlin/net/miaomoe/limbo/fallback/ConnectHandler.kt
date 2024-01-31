@@ -11,6 +11,7 @@ import net.miaomoe.blessing.protocol.packet.play.PacketTabListHeader
 import net.miaomoe.blessing.protocol.packet.status.PacketStatusRequest
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toMixedComponent
+import net.miaomoe.blessing.protocol.version.Version
 import net.miaomoe.limbo.LimboConfig
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.Logger
@@ -30,21 +31,22 @@ class ConnectHandler(
         if (msg is PacketKeepAlive) {
             log("$fallback has joined")
             val message = config.message
+            val legacy = fallback.version.less(Version.V1_16)
             message.chat.takeUnless { it.isEmpty() }?.let {
-                for (chat in it) fallback.sendMessage(chat.toComponent(), false)
+                for (chat in it) fallback.sendMessage(chat.toComponent(legacy), false)
             }
-            message.actionBar.takeUnless { it.isEmpty() }?.let { fallback.sendActionbar(it.toComponent(), false) }
+            message.actionBar.takeUnless { it.isEmpty() }?.let { fallback.sendActionbar(it.toComponent(legacy), false) }
             val title = message.title
             if (title.fadeIn != 0 || title.stay != 0 || title.fadeOut != 0) {
                 val time = TitleTime(title.fadeIn, title.stay, title.fadeOut)
-                fallback.writeTitle(TitleAction.TITLE, title.title.toComponent().toMixedComponent())
-                fallback.writeTitle(TitleAction.SUBTITLE, title.subTitle.toComponent().toMixedComponent())
+                fallback.writeTitle(TitleAction.TITLE, title.title.toMixedComponent(legacy))
+                fallback.writeTitle(TitleAction.SUBTITLE, title.subTitle.toMixedComponent(legacy))
                 fallback.writeTitle(TitleAction.TIMES, time)
             }
             val tab = message.tab
             fallback.write(PacketTabListHeader(
-                tab.header.joinToString("<reset><newline>").toComponent(),
-                tab.footer.joinToString("<reset><newline>").toComponent()
+                tab.header.toComponent(legacy),
+                tab.footer.toComponent(legacy)
             ), true)
         }
         super.write(ctx, msg, promise)

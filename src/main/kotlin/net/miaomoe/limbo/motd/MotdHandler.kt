@@ -4,8 +4,8 @@ import net.kyori.adventure.text.Component
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.fallback.handler.motd.FallbackMotdHandler
 import net.miaomoe.blessing.fallback.handler.motd.MotdInfo
-import net.miaomoe.blessing.protocol.util.ComponentUtil
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
+import net.miaomoe.blessing.protocol.util.ComponentUtil.toLegacyComponent
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toLegacyText
 import net.miaomoe.blessing.protocol.version.Version
 import net.miaomoe.limbo.LimboBootstrap
@@ -35,7 +35,7 @@ class MotdHandler(private val config: LimboConfig.MotdConfig) : FallbackMotdHand
     @Suppress("MemberVisibilityCanBePrivate")
     fun reload() {
         this.modernDescription = config.description.toComponent()
-        this.legacyDescription = ComponentUtil.legacy.deserialize(modernDescription.toLegacyText())
+        this.legacyDescription = modernDescription.toLegacyComponent()
         this.brand = config.brand.toComponent().toLegacyText()
         this.sample = config.sample
         this.online = config.online
