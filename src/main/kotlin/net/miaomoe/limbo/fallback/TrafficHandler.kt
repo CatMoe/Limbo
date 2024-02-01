@@ -1,13 +1,13 @@
 package net.miaomoe.limbo.fallback
 
 import io.netty.buffer.ByteBuf
-import io.netty.channel.ChannelDuplexHandler
-import io.netty.channel.ChannelHandler.Sharable
-import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelPromise
+import io.netty.channel.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import net.miaomoe.blessing.fallback.handler.FallbackHandler
+import net.miaomoe.blessing.fallback.handler.FallbackInitializer
 
 @Suppress("MemberVisibilityCanBePrivate")
-@Sharable
+@ChannelHandler.Sharable
 object TrafficHandler : ChannelDuplexHandler() {
 
     var tx = 0L
@@ -15,12 +15,30 @@ object TrafficHandler : ChannelDuplexHandler() {
     var rx = 0L
         private set
 
-    override fun channelRead(ctx: ChannelHandlerContext?, msg: Any?) {
+    private val openConnections = MutableStateFlow(mutableListOf<FallbackHandler>())
+
+    val oc get() = openConnections.value.size
+
+    val connections get() = openConnections.value.toList()
+
+    private fun getHandler(pipeline: ChannelPipeline) = pipeline[FallbackInitializer.HANDLER] as FallbackHandler
+
+    override fun channelActive(ctx: ChannelHandlerContext) {
+        openConnections.value.add(getHandler(ctx.channel().pipeline()))
+        super.channelActive(ctx)
+    }
+
+    override fun channelInactive(ctx: ChannelHandlerContext) {
+        openConnections.value.remove(getHandler(ctx.channel().pipeline()))
+        super.channelInactive(ctx)
+    }
+
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any?) {
         if (msg is ByteBuf) rx += msg.readableBytes()
         super.channelRead(ctx, msg)
     }
 
-    override fun write(ctx: ChannelHandlerContext?, msg: Any?, promise: ChannelPromise?) {
+    override fun write(ctx: ChannelHandlerContext, msg: Any?, promise: ChannelPromise?) {
         if (msg is ByteBuf) tx += msg.readableBytes()
         super.write(ctx, msg, promise)
     }

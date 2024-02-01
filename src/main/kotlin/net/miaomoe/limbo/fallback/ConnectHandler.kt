@@ -2,7 +2,7 @@ package net.miaomoe.limbo.fallback
 
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelPromise
+import net.miaomoe.blessing.event.EventManager
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.protocol.message.TitleAction
 import net.miaomoe.blessing.protocol.message.TitleTime
@@ -12,49 +12,64 @@ import net.miaomoe.blessing.protocol.packet.status.PacketStatusRequest
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toMixedComponent
 import net.miaomoe.blessing.protocol.version.Version
-import net.miaomoe.limbo.LimboConfig
+import net.miaomoe.limbo.LimboBootstrap
+import net.miaomoe.limbo.event.FallbackConnectEvent
+import net.miaomoe.limbo.event.FallbackDisconnectEvent
 import org.apache.logging.log4j.Level
-import org.apache.logging.log4j.Logger
 
 class ConnectHandler(
-    val fallback: FallbackHandler,
-    private val config: LimboConfig,
-    private val logger: Logger? = null
+    private val bootstrap: LimboBootstrap,
+    private val fallback: FallbackHandler
 ) : ChannelDuplexHandler() {
 
+    private var joined = false
+
+    override fun channelActive(ctx: ChannelHandlerContext) {
+        EventManager.call(FallbackConnectEvent(bootstrap, fallback)) {
+            if (it.isCancelled) ctx.close()
+        }
+        super.channelActive(ctx)
+    }
+
     override fun channelRead(ctx: ChannelHandlerContext?, msg: Any?) {
-        if (msg is PacketStatusRequest) log("$fallback has pinged")
+        when (msg) {
+            is PacketKeepAlive -> {
+                if (!joined) {
+                    joined=true
+                    log("has connected")
+                    val message = bootstrap.config.message
+                    val legacy = fallback.version.less(Version.V1_16)
+                    message.chat.takeUnless { it.isEmpty() }?.let {
+                        for (chat in it) fallback.sendMessage(chat.toComponent(legacy), false)
+                    }
+                    message.actionBar.takeUnless { it.isEmpty() }?.let { fallback.sendActionbar(it.toComponent(legacy), false) }
+                    val title = message.title
+                    if (title.fadeIn != 0 || title.stay != 0 || title.fadeOut != 0) {
+                        val time = TitleTime(title.fadeIn, title.stay, title.fadeOut)
+                        fallback.writeTitle(TitleAction.TITLE, title.title.toMixedComponent(legacy))
+                        fallback.writeTitle(TitleAction.SUBTITLE, title.subTitle.toMixedComponent(legacy))
+                        fallback.writeTitle(TitleAction.TIMES, time)
+                    }
+                    val tab = message.tab
+                    fallback.write(PacketTabListHeader(
+                        tab.header.toComponent(legacy),
+                        tab.footer.toComponent(legacy)
+                    ), true)
+                }
+            }
+            is PacketStatusRequest -> log("has pinged")
+        }
         super.channelRead(ctx, msg)
     }
 
-    override fun write(ctx: ChannelHandlerContext?, msg: Any?, promise: ChannelPromise?) {
-        if (msg is PacketKeepAlive) {
-            log("$fallback has joined")
-            val message = config.message
-            val legacy = fallback.version.less(Version.V1_16)
-            message.chat.takeUnless { it.isEmpty() }?.let {
-                for (chat in it) fallback.sendMessage(chat.toComponent(legacy), false)
-            }
-            message.actionBar.takeUnless { it.isEmpty() }?.let { fallback.sendActionbar(it.toComponent(legacy), false) }
-            val title = message.title
-            if (title.fadeIn != 0 || title.stay != 0 || title.fadeOut != 0) {
-                val time = TitleTime(title.fadeIn, title.stay, title.fadeOut)
-                fallback.writeTitle(TitleAction.TITLE, title.title.toMixedComponent(legacy))
-                fallback.writeTitle(TitleAction.SUBTITLE, title.subTitle.toMixedComponent(legacy))
-                fallback.writeTitle(TitleAction.TIMES, time)
-            }
-            val tab = message.tab
-            fallback.write(PacketTabListHeader(
-                tab.header.toComponent(legacy),
-                tab.footer.toComponent(legacy)
-            ), true)
-        }
-        super.write(ctx, msg, promise)
+    override fun channelInactive(ctx: ChannelHandlerContext?) {
+        EventManager.call(FallbackDisconnectEvent(bootstrap, fallback))
+        super.channelInactive(ctx)
     }
 
     private fun log(message: String) {
-        logger?.log(Level.INFO, message)
-        fallback.channel.pipeline().remove("limbo-connect-handler")
+        val fallback = this.fallback.toString().removePrefix("FallbackHandler")
+        bootstrap.log(Level.INFO, "$fallback $message")
     }
 
 }
