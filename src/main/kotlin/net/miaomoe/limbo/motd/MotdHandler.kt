@@ -17,8 +17,10 @@ import java.net.URL
 import java.net.URLEncoder
 import javax.imageio.ImageIO
 
-@Suppress("unused")
-class MotdHandler(private val config: LimboConfig.MotdConfig) : FallbackMotdHandler {
+class MotdHandler(
+    private val bootstrap: LimboBootstrap,
+    private val config: LimboConfig.ListenerConfig.MotdConfig
+) : FallbackMotdHandler {
 
     private lateinit var modernDescription: Component
     private lateinit var legacyDescription: Component
@@ -44,18 +46,17 @@ class MotdHandler(private val config: LimboConfig.MotdConfig) : FallbackMotdHand
     }
 
     private fun parseFavicon(value: String): MotdInfo.Favicon? {
-        val logger = LimboBootstrap.logger
         when {
-            value.isEmpty() -> logger.log(Level.INFO, "Favicon set to empty.")
+            value.isEmpty() -> bootstrap.log(message = "Favicon set to empty.")
             value.startsWith("[url]") -> {
                 val url = URLEncoder.encode(value.removePrefix("[url]"), "utf-8")
                 try {
-                    logger.log(Level.INFO, "Reading image from $url ...")
+                    bootstrap.log(Level.INFO, "Reading image from $url ...")
                     val favicon = MotdInfo.Favicon(ImageIO.read(URL(url)))
-                    logger.log(Level.INFO, "Successfully processed favicon.")
+                    bootstrap.log(Level.INFO, "Successfully processed favicon.")
                     return favicon
                 } catch (exception: Exception) {
-                    logger.log(Level.WARN, "Failed to download and process favicon. set it with empty.", exception)
+                    bootstrap.log("Failed to download and process favicon. set it with empty.", exception)
                 }
             }
             value.startsWith("[file]") -> {
@@ -63,14 +64,14 @@ class MotdHandler(private val config: LimboConfig.MotdConfig) : FallbackMotdHand
                 try {
                     if (!file.exists() || !file.isFile) throw FileNotFoundException("File is not exists or it is folder!")
                     val favicon = MotdInfo.Favicon(ImageIO.read(file))
-                    logger.log(Level.INFO, "Successfully processed favicon.")
+                    bootstrap.log(Level.INFO, "Successfully processed favicon.")
                     return favicon
                 } catch (exception: Exception) {
-                    logger.log(Level.WARN, "Failed to get favicon from ${file.absolutePath}", exception)
+                    bootstrap.log("Failed to get favicon from ${file.absolutePath}", exception)
                 }
             }
             value.startsWith("[encoded]") -> MotdInfo.Favicon(value.removePrefix("[encoded]"))
-            else -> logger.log(Level.WARN, "Invalid input: $value. Set favicon to empty.")
+            else -> bootstrap.log(Level.WARN, "Invalid input: $value. Set favicon to empty.")
         }
         return null
     }
