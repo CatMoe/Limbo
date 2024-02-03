@@ -2,6 +2,7 @@ package net.miaomoe.limbo.fallback
 
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelPromise
 import net.miaomoe.blessing.event.EventManager
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.protocol.message.TitleAction
@@ -62,12 +63,18 @@ class ConnectHandler(
                 }
             }
             is PacketStatusRequest -> log("has pinged")
-            is PacketDisconnect -> {
-                if (!kicked) kicked=true else return
+        }
+        super.channelRead(ctx, msg)
+    }
+
+    override fun write(ctx: ChannelHandlerContext?, msg: Any?, promise: ChannelPromise?) {
+        if (msg is PacketDisconnect) {
+            run {
+                if (!kicked) kicked=true else return@run
                 log("has been kicked: ${msg.message.toComponent().toLegacyText()}")
             }
         }
-        super.channelRead(ctx, msg)
+        super.write(ctx, msg, promise)
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext?) {

@@ -23,7 +23,11 @@ class ForwardHandler(
                 if (msg.nextState == State.LOGIN) when (mode) {
                     ForwardMode.LEGACY -> handleLegacy(msg)
                     ForwardMode.GUARD -> handleGuard(msg)
-                    else -> {}
+                    ForwardMode.NONE -> msg.host.let { host ->
+                        if (host.length !in 4..<254 || host.split("\u0000").filter { it.isNotBlank() }.size > 3)
+                            fallback.disconnect(invalidLegacyKick)
+                    }
+                    ForwardMode.MODERN -> {}
                 }
             }
         }
@@ -31,7 +35,7 @@ class ForwardHandler(
     }
 
     private fun handleGuard(handshake: PacketHandshake) {
-        val split = handshake.host.split("\u0000")
+        val split = handshake.host.split("\u0000").filter { it.isNotBlank() }
         if (split.size != 4) {
             fallback.disconnect(guardUnknownKick)
             return
@@ -81,6 +85,9 @@ class ForwardHandler(
 
     companion object {
         private val legacyForwardKick = "If you wish to use IP forwarding, please enable it in your BungeeCord config as well!".toComponent()
+        // Use the original kick message.
+        // Even though know it's not possible (Because Limbo doesn't have spigot.yml) :P
+        private val invalidLegacyKick = "Unknown data in login hostname, did you forget to enable BungeeCord in spigot.yml?".toComponent()
         private val guardUnknownKick = "<red>Unable to authenticate - no data was forwarded by the proxy.".toComponent()
         private val guardFailedKick = "<red>Unable to authenticate.".toComponent()
     }

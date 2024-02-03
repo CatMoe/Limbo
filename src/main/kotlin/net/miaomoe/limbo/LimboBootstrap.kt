@@ -69,9 +69,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                 val pipeline = channel.pipeline()
                 pipeline.addLast("limbo-handler", ConnectHandler(this, fallback))
                 pipeline.addFirst("limbo-traffic", TrafficHandler)
-                config.forwardMode.takeUnless { it == ForwardHandler.ForwardMode.NONE }?.let {
-                    pipeline.addAfter(FallbackInitializer.HANDLER, "limbo-forward", ForwardHandler(fallback, it, forwardKey))
-                }
+                pipeline.addAfter(FallbackInitializer.HANDLER, "limbo-forward", ForwardHandler(fallback, config.forwardMode, forwardKey))
             }
     }
 
