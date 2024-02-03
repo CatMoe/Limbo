@@ -22,6 +22,7 @@ Please deploy a reverse proxy and install an antibot plugin for yourself. Or use
 
 ## TODO
 
- - [ ] Support forwarding info from BungeeCord/BungeeGuard/Velocity
+ - [x] Support info forwarding from BungeeCord/BungeeGuard
+ - [ ] Support Modern (Velocity) info forwarding.
  - [ ] Multiple Motd can be configured in a single listener. And use one at random when requested.
  - [ ] Throttler or something like that to alleviate spam.

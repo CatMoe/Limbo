@@ -6,11 +6,13 @@ import net.miaomoe.blessing.event.EventManager
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.protocol.message.TitleAction
 import net.miaomoe.blessing.protocol.message.TitleTime
+import net.miaomoe.blessing.protocol.packet.common.PacketDisconnect
 import net.miaomoe.blessing.protocol.packet.common.PacketKeepAlive
 import net.miaomoe.blessing.protocol.packet.play.PacketTabListHeader
 import net.miaomoe.blessing.protocol.packet.status.PacketStatusRequest
 import net.miaomoe.blessing.protocol.registry.State
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
+import net.miaomoe.blessing.protocol.util.ComponentUtil.toLegacyText
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toMixedComponent
 import net.miaomoe.blessing.protocol.version.Version
 import net.miaomoe.limbo.LimboBootstrap
@@ -24,6 +26,7 @@ class ConnectHandler(
 ) : ChannelDuplexHandler() {
 
     private var joined = false
+    private var kicked = false
 
     override fun channelActive(ctx: ChannelHandlerContext) {
         EventManager.call(FallbackConnectEvent(bootstrap, fallback)) {
@@ -59,13 +62,17 @@ class ConnectHandler(
                 }
             }
             is PacketStatusRequest -> log("has pinged")
+            is PacketDisconnect -> {
+                if (!kicked) kicked=true else return
+                log("has been kicked: ${msg.message.toComponent().toLegacyText()}")
+            }
         }
         super.channelRead(ctx, msg)
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext?) {
         EventManager.call(FallbackDisconnectEvent(bootstrap, fallback))
-        if (fallback.state.let { it == State.PLAY || it == State.CONFIGURATION }) log("has disconnected")
+        if (fallback.state.let { (it == State.PLAY || it == State.CONFIGURATION) && !kicked }) log("has disconnected")
         super.channelInactive(ctx)
     }
 

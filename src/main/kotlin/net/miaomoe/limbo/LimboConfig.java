@@ -7,6 +7,7 @@ import net.miaomoe.blessing.config.annotation.Relocated;
 import net.miaomoe.blessing.nbt.dimension.World;
 import net.miaomoe.blessing.protocol.util.PlayerPosition;
 import net.miaomoe.blessing.protocol.util.Position;
+import net.miaomoe.limbo.fallback.ForwardHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +44,30 @@ public class LimboConfig extends AbstractConfig {
 
         @Path
         public boolean debug = false;
+
+        @Path(path = "forward-mode")
+        @Description(description = {
+                "This option will check the information coming in from the proxy (to synchronize the IP address of the incoming connection).",
+                "And help Limbo reject the target connection that is not from the proxy.",
+                "",
+                "All forwards that are deemed invalid will use their original kick message.",
+                "(example when you using LEGACY: \"If you wish to use IP forwarding, please enable it in your BungeeCord config as well!\")",
+                "",
+                "NONE: No forwarding will be processed. Players are allowed to connect directly to Limbo.",
+                "LEGACY: Classic BungeeCord ip-forward.",
+                "GUARD: Handle the forward from BungeeGuard.",
+                "MODERN: (Unsupported now) Handle the forward from Velocity."
+        })
+        public ForwardHandler.ForwardMode forwardMode = ForwardHandler.ForwardMode.NONE;
+
+        @Path(path = "forward-key")
+        @Description(description = {
+                "The key for the MODERN or GUARD forwarding mode.",
+                "",
+                "GUARD: A string in the form of a key. (You can use \"|\" to separate multiple lines)",
+                "MODERN: The path to the \"forwarding.secret\" file. (It can also be called something else)"
+        })
+        public String forwardKey = "";
 
         @Path
         @NotNull

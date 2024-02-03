@@ -23,6 +23,7 @@ import net.miaomoe.limbo.LimboConfig.ListenerConfig
 import net.miaomoe.limbo.event.ConfigReloadedEvent
 import net.miaomoe.limbo.event.ConsoleInputEvent
 import net.miaomoe.limbo.fallback.ConnectHandler
+import net.miaomoe.limbo.fallback.ForwardHandler
 import net.miaomoe.limbo.fallback.TrafficHandler
 import net.miaomoe.limbo.motd.MotdHandler
 import org.apache.logging.log4j.Level
@@ -48,6 +49,8 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
     val settings: FallbackSettings = FallbackSettings.create()
     val initializer: FallbackInitializer
 
+    var forwardKey: Any? = null
+
     fun reloadFallback() {
         settings
             .setAliveScheduler(true)
@@ -66,6 +69,9 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                 val pipeline = channel.pipeline()
                 pipeline.addLast("limbo-handler", ConnectHandler(this, fallback))
                 pipeline.addFirst("limbo-traffic", TrafficHandler)
+                config.forwardMode.takeUnless { it == ForwardHandler.ForwardMode.NONE }?.let {
+                    pipeline.addAfter(FallbackInitializer.HANDLER, "limbo-forward", ForwardHandler(fallback, it, forwardKey))
+                }
             }
     }
 
@@ -97,6 +103,13 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                 reloadFallback()
                 motdHandler.reload()
                 initializer.refreshCache()
+                forwardKey = when (config.forwardMode) {
+                    ForwardHandler.ForwardMode.GUARD -> {
+                        val key = config.forwardKey.split("|")
+                        if (key.size == 1) key[0] else key
+                    }
+                    else -> null
+                }
             })
     }
 
@@ -131,7 +144,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
     }
 
     override fun exceptionCaught(ctx: ChannelHandlerContext, exception: Throwable) {
-        ctx.close()
+        ctx.channel().close()
         if (!config.debug) {
             CompletableFuture.runAsync {
                 val fallback = ctx.channel().pipeline()[FallbackInitializer.HANDLER] as FallbackInitializer
