@@ -9,7 +9,6 @@ import net.miaomoe.blessing.protocol.util.ComponentUtil.toLegacyComponent
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toLegacyText
 import net.miaomoe.blessing.protocol.version.Version
 import net.miaomoe.limbo.LimboBootstrap
-import net.miaomoe.limbo.LimboConfig
 import org.apache.logging.log4j.Level
 import java.io.File
 import java.io.FileNotFoundException
@@ -18,9 +17,10 @@ import java.net.URLEncoder
 import javax.imageio.ImageIO
 
 class MotdHandler(
-    private val bootstrap: LimboBootstrap,
-    private val config: LimboConfig.ListenerConfig.MotdConfig
+    private val bootstrap: LimboBootstrap
 ) : FallbackMotdHandler {
+
+    private val config get() = bootstrap.config.motd
 
     private lateinit var modernDescription: Component
     private lateinit var legacyDescription: Component
