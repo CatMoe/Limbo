@@ -7,7 +7,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.protocol.packet.handshake.PacketHandshake
 import net.miaomoe.blessing.protocol.registry.State
-import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
+import net.miaomoe.blessing.protocol.util.ComponentUtil.toMixedComponent
 import java.net.InetSocketAddress
 
 
@@ -84,12 +84,12 @@ class ForwardHandler(
     }
 
     companion object {
-        private val legacyForwardKick = "If you wish to use IP forwarding, please enable it in your BungeeCord config as well!".toComponent()
+        private val legacyForwardKick = "If you wish to use IP forwarding, please enable it in your BungeeCord config as well!".toMixedComponent()
         // Use the original kick message.
         // Even though know it's not possible (Because Limbo doesn't have spigot.yml) :P
-        private val invalidLegacyKick = "Unknown data in login hostname, did you forget to enable BungeeCord in spigot.yml?".toComponent()
-        private val guardUnknownKick = "<red>Unable to authenticate - no data was forwarded by the proxy.".toComponent()
-        private val guardFailedKick = "<red>Unable to authenticate.".toComponent()
+        private val invalidLegacyKick = "Unknown data in login hostname, did you forget to enable BungeeCord in spigot.yml?".toMixedComponent()
+        private val guardUnknownKick = "<red>Unable to authenticate - no data was forwarded by the proxy.".toMixedComponent()
+        private val guardFailedKick = "<red>Unable to authenticate.".toMixedComponent()
     }
 
     enum class ForwardMode {
