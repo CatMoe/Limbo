@@ -43,7 +43,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
     val serverChannel: Class<out ServerSocketChannel>
     val loopGroup: EventLoopGroup
 
-    val motdHandler = MotdHandler(this, config.motd)
+    val motdHandler = MotdHandler(this)
 
     val settings: FallbackSettings = FallbackSettings.create()
     val initializer: FallbackInitializer
@@ -92,11 +92,11 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                     EventManager.unregister(ConfigReloadedEvent::class, this.listenerKey)
                     return@ConsumerListenerAdapter
                 }
+                new.bootstrap = this
+                this.config = new
                 reloadFallback()
                 motdHandler.reload()
                 initializer.refreshCache()
-                new.bootstrap = this
-                this.config = new
             })
     }
 
@@ -185,7 +185,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                         EventManager.call(ConsoleInputEvent(line.lowercase().trim())) { event ->
                             if (event.isCancelled) return@call
                             when (event.input) {
-                                "stop" -> {
+                                "stop", "end" -> {
                                     LimboConfig.INSTANCE.listeners.forEach { it.bootstrap?.close() }
                                     exitProcess(0)
                                 }

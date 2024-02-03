@@ -9,6 +9,7 @@ import net.miaomoe.blessing.protocol.message.TitleTime
 import net.miaomoe.blessing.protocol.packet.common.PacketKeepAlive
 import net.miaomoe.blessing.protocol.packet.play.PacketTabListHeader
 import net.miaomoe.blessing.protocol.packet.status.PacketStatusRequest
+import net.miaomoe.blessing.protocol.registry.State
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toMixedComponent
 import net.miaomoe.blessing.protocol.version.Version
@@ -64,6 +65,7 @@ class ConnectHandler(
 
     override fun channelInactive(ctx: ChannelHandlerContext?) {
         EventManager.call(FallbackDisconnectEvent(bootstrap, fallback))
+        if (fallback.state.let { it == State.PLAY || it == State.CONFIGURATION }) log("has disconnected")
         super.channelInactive(ctx)
     }
 
