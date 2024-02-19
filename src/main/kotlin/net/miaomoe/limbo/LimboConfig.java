@@ -1,9 +1,10 @@
 package net.miaomoe.limbo;
 
-import net.miaomoe.blessing.config.AbstractConfig;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import net.miaomoe.blessing.config.annotation.Description;
-import net.miaomoe.blessing.config.annotation.Path;
-import net.miaomoe.blessing.config.annotation.Relocated;
+import net.miaomoe.blessing.config.annotation.ParseAllField;
+import net.miaomoe.blessing.config.parser.AbstractConfig;
 import net.miaomoe.blessing.nbt.dimension.World;
 import net.miaomoe.blessing.protocol.util.PlayerPosition;
 import net.miaomoe.blessing.protocol.util.Position;
@@ -14,38 +15,24 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 
+@ParseAllField(ignore = "INSTANCE")
 public class LimboConfig extends AbstractConfig {
 
     public static final LimboConfig INSTANCE = new LimboConfig();
-
-    @Path
-    @Relocated(target = ListenerConfig.class)
     public List<ListenerConfig> listeners = Collections.singletonList(new ListenerConfig());
 
     private LimboConfig() {}
 
+    @ParseAllField(ignore = "bootstrap")
     public static class ListenerConfig extends AbstractConfig {
 
         private ListenerConfig() {}
-
-        @Nullable
-        public LimboBootstrap bootstrap = null;
-
-        @Path(path = "listener-name")
+        @Nullable public LimboBootstrap bootstrap = null;
         @Description(description = "The name must be unique.")
-        public String name = "main";
-
-        @Path(path = "bind-address")
-        @NotNull
-        public String address = "0.0.0.0";
-
-        @Path(path = "bind-port")
+        @NotNull public String name = "main";
+        @NotNull public String bindAddress = "0.0.0.0";
         public int port = 25565;
-
-        @Path
         public boolean debug = false;
-
-        @Path(path = "forward-mode")
         @Description(description = {
                 "This option will check the information coming in from the proxy (to synchronize the IP address of the incoming connection).",
                 "And help Limbo reject the target connection that is not from the proxy.",
@@ -59,8 +46,6 @@ public class LimboConfig extends AbstractConfig {
                 "MODERN: (Unsupported now) Handle the forward from Velocity."
         })
         public ForwardHandler.ForwardMode forwardMode = ForwardHandler.ForwardMode.NONE;
-
-        @Path(path = "forward-key")
         @Description(description = {
                 "The key for the MODERN or GUARD forwarding mode.",
                 "",
@@ -68,53 +53,28 @@ public class LimboConfig extends AbstractConfig {
                 "MODERN: The path to the \"forwarding.secret\" file. (It can also be called something else)"
         })
         public String forwardKey = "";
-
-        @Path
         @NotNull
         @SuppressWarnings("SpellCheckingInspection")
         @Description(description = "overworld, nether, the_end")
         public World world = World.OVERWORLD;
-
-        @Path
-        @NotNull
-        public String brand = "<light_purple>Blessing</light_purple>";
-
-        @Path(path = "player-name")
-        @NotNull
-        public String playerName = "Blessing";
-
-        @Path(path = "disable-fall")
+        @NotNull public String brand = "<light_purple>Blessing</light_purple>";
+        @NotNull public String playerName = "Blessing";
         public boolean disableFall = true;
-
-        @Path
         public long timeout = 30000;
-
-        @Path
         @Description(description = "keep-alive delay")
         public long delay = 10000;
+        @NotNull public MotdConfig motd = new MotdConfig();
 
-        @Path
-        @NotNull
-        public MotdConfig motd = new MotdConfig();
-
+        @ParseAllField
+        @NoArgsConstructor(access = AccessLevel.PRIVATE)
         public static class MotdConfig extends AbstractConfig {
-
-            private MotdConfig() {}
-
-            @Path
             public String description = "<light_purple>Blessing powered - Limbo <3";
-            @Path
             public String brand = "<light_purple>Blessing Powered";
-            @Path
             @Description(description = "set player info to null.")
             public boolean unknown = false;
-            @Path
             public int max = 0;
-            @Path
             public int online = 0;
-            @Path(path = "show-brand")
             public boolean showBrand = false;
-            @Path
             @Description(description = {
                     "empty to set null. available prefix:",
                     "[url] : get png file from url. (example: \"[url]https://example.com\")",
@@ -122,27 +82,19 @@ public class LimboConfig extends AbstractConfig {
                     "[encoded] : directly encode base64 image. (example: \"[encoded]data:image/png;base64,**content**\")"
             })
             public String icon = "";
-            @Path
             public List<String> sample = Collections.singletonList("<light_purple>https://github.com/CatMoe/Limbo");
         }
 
-        @Path
         @NotNull
         public PositionConfig position = new PositionConfig();
 
+        @ParseAllField
+        @NoArgsConstructor(access = AccessLevel.PRIVATE)
         public static class PositionConfig extends AbstractConfig {
-
-            private PositionConfig() {}
-
-            @Path
             public double x = 7.5;
-            @Path
             public double y = 100;
-            @Path
             public double z = 7.5;
-            @Path
             public float yaw = 180;
-            @Path
             public float pitch = 0;
 
             public @NotNull PlayerPosition toPlayerPosition() {
@@ -150,77 +102,52 @@ public class LimboConfig extends AbstractConfig {
             }
         }
 
-        @Path
-        @NotNull
-        public JoinMessageConfig message = new JoinMessageConfig();
+        @NotNull public JoinMessageConfig message = new JoinMessageConfig();
 
+        @ParseAllField
         public static class JoinMessageConfig extends AbstractConfig {
 
-            private JoinMessageConfig() {}
-
-            @Path
-            @NotNull
             @Description(description = {
                     "Write the chat message for player that joining.",
                     "Set to empty to disable this feature."
             })
-            public List<String> chat = Collections.emptyList();
+            @NotNull public List<String> chat = Collections.emptyList();
 
-            @Path
-            @NotNull
             @Description(description = {
                     "Write the actionbar message for player that joining.",
                     "This feature only works on 1.8+",
                     "",
                     "Set to empty to disable this feature."
             })
-            public String actionBar = "";
+            @NotNull public String actionBar = "";
 
-            @Path
-            @NotNull
             @Description(description = {
                     "Write the title message for player that joining.",
                     "This feature only works on 1.8+",
                     "",
                     "setting the fadeIn, stay, fadeOut to 0 to disable."
             })
-            public TitleConfig title = new TitleConfig();
+            @NotNull public TitleConfig title = new TitleConfig();
 
+            @ParseAllField
+            @NoArgsConstructor(access = AccessLevel.PRIVATE)
             public static class TitleConfig extends AbstractConfig {
-
-                private TitleConfig() {}
-
-                @Path
-                @NotNull
-                public String title = "";
-                @Path(path = "sub-title")
-                @NotNull
-                public String subTitle = "";
-                @Path(path = "fade-in")
+                @NotNull public String title = "";
+                @NotNull public String subTitle = "";
                 public int fadeIn = 0;
-                @Path
                 public int stay = 0;
-                @Path(path = "fade-out")
                 public int fadeOut = 0;
             }
 
-            @Path
-            @NotNull
             @Description(description = "Configuration about tab header & footer. (Works on 1.8+)")
-            public TabConfig tab = new TabConfig();
+            @NotNull public TabConfig tab = new TabConfig();
 
+            @ParseAllField
+            @NoArgsConstructor(access = AccessLevel.PRIVATE)
             public static class TabConfig extends AbstractConfig {
-
-                private TabConfig() {}
-
-                @Path
-                @NotNull
-                public List<String> header = Collections.emptyList();
-                @Path
-                @NotNull
-                public List<String> footer = Collections.emptyList();
+                @NotNull public List<String> header = Collections.emptyList();
+                @NotNull public List<String> footer = Collections.emptyList();
             }
-
         }
 
     }

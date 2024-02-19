@@ -2,7 +2,6 @@ package net.miaomoe.limbo
 
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelFuture
-import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelOption
 import io.netty.channel.EventLoopGroup
@@ -12,7 +11,8 @@ import io.netty.channel.epoll.EpollServerSocketChannel
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.ServerSocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import net.miaomoe.blessing.config.ConfigUtil
+import net.miaomoe.blessing.config.type.ConfigType
+import net.miaomoe.blessing.config.util.SimpleConfigUtil
 import net.miaomoe.blessing.event.EventManager
 import net.miaomoe.blessing.event.adapter.ConsumerListenerAdapter
 import net.miaomoe.blessing.event.info.ListenerInfo
@@ -36,7 +36,6 @@ import java.util.concurrent.CompletableFuture
 import kotlin.system.exitProcess
 
 @Suppress("MemberVisibilityCanBePrivate")
-@Sharable
 class LimboBootstrap private constructor(var config: ListenerConfig) : ExceptionHandler {
 
     val listenerKey = ListenerInfo(this, async = false)
@@ -114,7 +113,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
     private var bindFuture: ChannelFuture? = null
 
     private fun bind() {
-        val address = InetSocketAddress(config.address, config.port)
+        val address = InetSocketAddress(config.bindAddress, config.port)
         bindFuture = ServerBootstrap()
             .localAddress(address.hostString, address.port)
             .childOption(ChannelOption.IP_TOS, 0x18)
@@ -159,7 +158,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
         fun reload() {
             logger.log(Level.INFO, "Reloading config..")
             val config = LimboConfig.INSTANCE
-            ConfigUtil.saveAndRead(File("config.conf"), config)
+            SimpleConfigUtil.saveAndRead(File("config.conf"), config, ConfigType.HOCON)
             val name = mutableListOf<String>()
             for (listener in config.listeners) {
                 require(!name.contains(listener.name)) { "Listener name conflict: ${listener.name}" }
@@ -178,7 +177,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
             for (listener in listeners) {
                 val bootstrap = LimboBootstrap(listener)
                 listener.bootstrap=bootstrap
-                val name = "${listener.address}:${listener.port} for ${listener.name}"
+                val name = "${listener.bindAddress}:${listener.port} for ${listener.name}"
                 try {
                     bootstrap.bind()
                     logger.log(Level.INFO, "Successfully bind on $name")
@@ -232,7 +231,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
             }
             logger.log(Level.INFO, "Loading config...")
             val config = LimboConfig.INSTANCE
-            ConfigUtil.saveAndRead(File("config.conf"), config)
+            SimpleConfigUtil.saveAndRead(File("config.conf"), config, ConfigType.HOCON)
             val listeners = config.listeners
             if (listeners.isEmpty()) {
                 logger.log(Level.WARN, "Listeners list is empty!")
