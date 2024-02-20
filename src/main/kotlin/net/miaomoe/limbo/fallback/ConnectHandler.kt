@@ -16,13 +16,13 @@ import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toLegacyText
 import net.miaomoe.blessing.protocol.util.ComponentUtil.toMixedComponent
 import net.miaomoe.blessing.protocol.version.Version
-import net.miaomoe.limbo.LimboBootstrap
+import net.miaomoe.limbo.Bootstrap
 import net.miaomoe.limbo.event.FallbackConnectEvent
 import net.miaomoe.limbo.event.FallbackDisconnectEvent
 import org.apache.logging.log4j.Level
 
 class ConnectHandler(
-    private val bootstrap: LimboBootstrap,
+    private val bootstrap: Bootstrap,
     private val fallback: FallbackHandler
 ) : ChannelDuplexHandler() {
 

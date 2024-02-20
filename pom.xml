@@ -18,7 +18,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <blessing.version>0.0.1</blessing.version>
-        <adventure.version>4.15.0</adventure.version>
+        <adventure.version>4.16.0</adventure.version>
         <log4j.version>2.22.1</log4j.version>
     </properties>
 
@@ -70,7 +70,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>net.miaomoe.limbo.LimboBootstrap</mainClass>
+                                    <mainClass>net.miaomoe.limbo.Bootstrap</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
@@ -165,9 +165,14 @@
             <version>${log4j.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-iostreams</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.106.Final</version>
+            <version>4.1.107.Final</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

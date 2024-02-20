@@ -2,12 +2,23 @@
 <Configuration status="INFO">
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss}] %-5level: %msg%n"/>
+            <PatternLayout pattern="[%d{MM-dd HH:mm:ss}/%level]: %msg%n"/>
         </Console>
+        <RollingRandomAccessFile
+                name="File" fileName="logs/latest.log"
+                filePattern="logs/%d{yyyy-MM-dd}-%i.log.gz"
+                immediateFlush="true">
+            <PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level] [%c{1}]: %msg%n" charset="UTF-8"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <OnStartupTriggeringPolicy/>
+            </Policies>
+        </RollingRandomAccessFile>
     </Appenders>
     <Loggers>
         <Root level="info">
             <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
         </Root>
     </Loggers>
 </Configuration>

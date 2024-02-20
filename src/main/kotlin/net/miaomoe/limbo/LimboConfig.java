@@ -27,7 +27,7 @@ public class LimboConfig extends AbstractConfig {
     public static class ListenerConfig extends AbstractConfig {
 
         private ListenerConfig() {}
-        @Nullable public LimboBootstrap bootstrap = null;
+        @Nullable public Bootstrap bootstrap = null;
         @Description(description = "The name must be unique.")
         @NotNull public String name = "main";
         @NotNull public String bindAddress = "0.0.0.0";

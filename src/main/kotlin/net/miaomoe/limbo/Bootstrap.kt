@@ -1,10 +1,7 @@
 package net.miaomoe.limbo
 
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.ChannelFuture
-import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelOption
-import io.netty.channel.EventLoopGroup
+import io.netty.channel.*
 import io.netty.channel.epoll.Epoll
 import io.netty.channel.epoll.EpollEventLoopGroup
 import io.netty.channel.epoll.EpollServerSocketChannel
@@ -17,26 +14,33 @@ import net.miaomoe.blessing.event.EventManager
 import net.miaomoe.blessing.event.adapter.ConsumerListenerAdapter
 import net.miaomoe.blessing.event.info.ListenerInfo
 import net.miaomoe.blessing.fallback.config.FallbackSettings
+import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.fallback.handler.FallbackInitializer
 import net.miaomoe.blessing.fallback.handler.exception.ExceptionHandler
 import net.miaomoe.limbo.LimboConfig.ListenerConfig
 import net.miaomoe.limbo.event.ConfigReloadedEvent
 import net.miaomoe.limbo.event.ConsoleInputEvent
+import net.miaomoe.limbo.event.ListenerAddEvent
+import net.miaomoe.limbo.event.ListenerRemoveEvent
 import net.miaomoe.limbo.fallback.ConnectHandler
 import net.miaomoe.limbo.fallback.ForwardHandler
 import net.miaomoe.limbo.fallback.TrafficHandler
 import net.miaomoe.limbo.motd.MotdHandler
+import net.miaomoe.limbo.util.Log4jJulHandler
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.apache.logging.log4j.io.IoBuilder
 import java.io.File
 import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import kotlin.system.exitProcess
+import java.util.logging.Level as JulLevel
+import java.util.logging.Logger as JulLogger
 
 @Suppress("MemberVisibilityCanBePrivate")
-class LimboBootstrap private constructor(var config: ListenerConfig) : ExceptionHandler {
+class Bootstrap private constructor(var config: ListenerConfig) : ExceptionHandler {
 
     val listenerKey = ListenerInfo(this, async = false)
 
@@ -62,14 +66,16 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
             .setExceptionHandler(this)
             .setMotdHandler(motdHandler)
             .setDisableFall(config.disableFall)
-            .setDebugLogger(if (config.debug) java.util.logging.Logger.getAnonymousLogger() else null)
+            .setDebugLogger(if (config.debug) jul.value else null)
             .setTimeout(config.timeout)
-            .setInitListener { fallback, channel ->
-                val pipeline = channel.pipeline()
-                pipeline.addLast("limbo-handler", ConnectHandler(this, fallback))
-                pipeline.addFirst("limbo-traffic", TrafficHandler)
-                pipeline.addAfter(FallbackInitializer.HANDLER, "limbo-forward", ForwardHandler(fallback, config.forwardMode, forwardKey))
-            }
+            .setInitListener(::initListener)
+    }
+
+    private fun initListener(fallback: FallbackHandler, channel: Channel) {
+        val pipeline = channel.pipeline()
+        pipeline.addLast("limbo-handler", ConnectHandler(this, fallback))
+        pipeline.addFirst("limbo-traffic", TrafficHandler)
+        pipeline.addAfter(FallbackInitializer.HANDLER, "limbo-forward", ForwardHandler(fallback, config.forwardMode, forwardKey))
     }
 
     init {
@@ -91,6 +97,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                     .firstOrNull { it.name == original.name && it.bootstrap == null }
                 if (new == null) {
                     log(message = "This listener appears to have been removed from the config.")
+                    EventManager.call(ListenerRemoveEvent(this.config, this))
                     this.close()
                     EventManager.unregister(ConfigReloadedEvent::class, this.listenerKey)
                     return@ConsumerListenerAdapter
@@ -107,12 +114,13 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                     }
                     else -> null
                 }
+                EventManager.call(ListenerAddEvent(this.config, this))
             })
     }
 
     private var bindFuture: ChannelFuture? = null
 
-    private fun bind() {
+    fun bind() {
         val address = InetSocketAddress(config.bindAddress, config.port)
         bindFuture = ServerBootstrap()
             .localAddress(address.hostString, address.port)
@@ -153,7 +161,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
     companion object {
 
         @JvmStatic
-        val logger: Logger = LogManager.getLogger(LimboBootstrap::class.java)
+        val logger: Logger = LogManager.getLogger(Bootstrap::class.java)
 
         fun reload() {
             logger.log(Level.INFO, "Reloading config..")
@@ -175,7 +183,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
 
         private fun enableListeners(listeners: List<ListenerConfig>) {
             for (listener in listeners) {
-                val bootstrap = LimboBootstrap(listener)
+                val bootstrap = Bootstrap(listener)
                 listener.bootstrap=bootstrap
                 val name = "${listener.bindAddress}:${listener.port} for ${listener.name}"
                 try {
@@ -194,6 +202,7 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                     try { scanner.nextLine() } catch (_: Exception) { null }?.let { line ->
                         EventManager.call(ConsoleInputEvent(line.lowercase().trim())) { event ->
                             if (event.isCancelled) return@call
+                            logger.log(Level.INFO, "Command executed: ${event.input}")
                             when (event.input) {
                                 "stop", "end" -> {
                                     LimboConfig.INSTANCE.listeners.forEach { it.bootstrap?.close() }
@@ -211,14 +220,29 @@ class LimboBootstrap private constructor(var config: ListenerConfig) : Exception
                                     }
                                     logger.log(Level.INFO, "Open Connections: $oc | tx: $tx | rx: $rx")
                                 }
+                                else -> logger.log(Level.INFO, "Unknown command. available commands: [end/stop, reload, status]")
                             }
                         }
                     }
                 }}
             }
+            thread.name = "CommandThread"
             thread.isDaemon=true
             thread.start()
             thread.join()
+        }
+
+        @JvmStatic
+        val jul = lazy {
+            val redirect = LogManager.getRootLogger()
+            System.setOut(IoBuilder.forLogger(redirect).setLevel(Level.INFO).buildPrintStream())
+            System.setErr(IoBuilder.forLogger(redirect).setLevel(Level.ERROR).buildPrintStream())
+            val root = JulLogger.getLogger("")
+            root.useParentHandlers=false
+            root.handlers.forEach(root::removeHandler)
+            root.level = JulLevel.ALL
+            root.addHandler(Log4jJulHandler())
+            return@lazy JulLogger.getLogger(Log4jJulHandler::class.qualifiedName)
         }
 
         @JvmStatic
