@@ -1,5 +1,7 @@
 package net.miaomoe.limbo
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.*
 import io.netty.channel.epoll.Epoll
@@ -8,6 +10,7 @@ import io.netty.channel.epoll.EpollServerSocketChannel
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.ServerSocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import net.kyori.adventure.text.Component
 import net.miaomoe.blessing.config.type.ConfigType
 import net.miaomoe.blessing.config.util.SimpleConfigUtil
 import net.miaomoe.blessing.event.EventManager
@@ -17,7 +20,9 @@ import net.miaomoe.blessing.fallback.config.FallbackSettings
 import net.miaomoe.blessing.fallback.handler.FallbackHandler
 import net.miaomoe.blessing.fallback.handler.FallbackInitializer
 import net.miaomoe.blessing.fallback.handler.exception.ExceptionHandler
+import net.miaomoe.blessing.protocol.util.ComponentUtil.toComponent
 import net.miaomoe.limbo.LimboConfig.ListenerConfig
+import net.miaomoe.limbo.LimboConfig.ListenerConfig.WhitelistConfig
 import net.miaomoe.limbo.event.ConfigReloadedEvent
 import net.miaomoe.limbo.event.ConsoleInputEvent
 import net.miaomoe.limbo.event.ListenerAddEvent
@@ -54,6 +59,10 @@ class Bootstrap private constructor(var config: ListenerConfig) : ExceptionHandl
 
     var forwardKey: Any? = null
 
+    val whitelisted: Cache<String, Boolean> = Caffeine.newBuilder().build()
+
+    lateinit var whitelistedMessage: Component
+
     fun reloadFallback() {
         settings
             .setAliveScheduler(true)
@@ -73,9 +82,9 @@ class Bootstrap private constructor(var config: ListenerConfig) : ExceptionHandl
 
     private fun initListener(fallback: FallbackHandler, channel: Channel) {
         val pipeline = channel.pipeline()
-        pipeline.addLast("limbo-handler", ConnectHandler(this, fallback))
+        pipeline.addBefore(FallbackInitializer.HANDLER, "limbo-handler", ConnectHandler(this, fallback))
         pipeline.addFirst("limbo-traffic", TrafficHandler)
-        pipeline.addAfter(FallbackInitializer.HANDLER, "limbo-forward", ForwardHandler(fallback, config.forwardMode, forwardKey))
+        pipeline.addBefore(FallbackInitializer.HANDLER, "limbo-forward", ForwardHandler(fallback, config.forwardMode, forwardKey))
     }
 
     init {
@@ -88,6 +97,7 @@ class Bootstrap private constructor(var config: ListenerConfig) : ExceptionHandl
             this.serverChannel = NioServerSocketChannel::class.java
             this.loopGroup = NioEventLoopGroup()
         }
+        reloadWhitelist(config.whitelist)
         EventManager.register(
             ConfigReloadedEvent::class,
             this.listenerKey,
@@ -114,8 +124,19 @@ class Bootstrap private constructor(var config: ListenerConfig) : ExceptionHandl
                     }
                     else -> null
                 }
+                reloadWhitelist(new.whitelist)
                 EventManager.call(ListenerAddEvent(this.config, this))
             })
+    }
+
+    private fun reloadWhitelist(whitelist: WhitelistConfig) {
+        val list = whitelist.whitelisted
+        if (list.isEmpty() && whitelist.enable) {
+            this.log(Level.WARN, "Whitelist enabled but list is empty! That will reject all player while they try joining.")
+        }
+        whitelistedMessage = whitelist.message.toComponent()
+        whitelisted.invalidateAll()
+        for (name in list) whitelisted.put(name, true)
     }
 
     private var bindFuture: ChannelFuture? = null
@@ -200,10 +221,11 @@ class Bootstrap private constructor(var config: ListenerConfig) : ExceptionHandl
                 logger.log(Level.INFO, "Bootstrap finished")
                 Scanner(System.`in`).let { scanner -> while (true) {
                     try { scanner.nextLine() } catch (_: Exception) { null }?.let { line ->
-                        EventManager.call(ConsoleInputEvent(line.lowercase().trim())) { event ->
+                        EventManager.call(ConsoleInputEvent(line.trim())) { event ->
                             if (event.isCancelled) return@call
                             logger.log(Level.INFO, "Command executed: ${event.input}")
-                            when (event.input) {
+                            val split = event.input.split(" ")
+                            when (split[0].lowercase()) {
                                 "stop", "end" -> {
                                     LimboConfig.INSTANCE.listeners.forEach { it.bootstrap?.close() }
                                     exitProcess(0)

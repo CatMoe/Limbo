@@ -9,6 +9,7 @@ import net.miaomoe.blessing.protocol.message.TitleAction
 import net.miaomoe.blessing.protocol.message.TitleTime
 import net.miaomoe.blessing.protocol.packet.common.PacketDisconnect
 import net.miaomoe.blessing.protocol.packet.common.PacketKeepAlive
+import net.miaomoe.blessing.protocol.packet.login.PacketLoginRequest
 import net.miaomoe.blessing.protocol.packet.play.PacketTabListHeader
 import net.miaomoe.blessing.protocol.packet.status.PacketStatusRequest
 import net.miaomoe.blessing.protocol.registry.State
@@ -63,6 +64,12 @@ class ConnectHandler(
                 }
             }
             is PacketStatusRequest -> log("has pinged")
+            is PacketLoginRequest -> {
+                if (bootstrap.config.whitelist.enable && bootstrap.whitelisted.getIfPresent(msg.name) != true) {
+                    kicked=true
+                    fallback.disconnect(bootstrap.whitelistedMessage)
+                }
+            }
         }
         super.channelRead(ctx, msg)
     }

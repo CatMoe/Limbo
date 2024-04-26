@@ -2,7 +2,7 @@ package net.miaomoe.limbo;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import net.miaomoe.blessing.config.annotation.Description;
+import net.miaomoe.blessing.config.annotation.Comment;
 import net.miaomoe.blessing.config.annotation.ParseAllField;
 import net.miaomoe.blessing.config.parser.AbstractConfig;
 import net.miaomoe.blessing.nbt.dimension.World;
@@ -28,12 +28,12 @@ public class LimboConfig extends AbstractConfig {
 
         private ListenerConfig() {}
         @Nullable public Bootstrap bootstrap = null;
-        @Description(description = "The name must be unique.")
+        @Comment(description = "The name must be unique.")
         @NotNull public String name = "main";
         @NotNull public String bindAddress = "0.0.0.0";
         public int port = 25565;
         public boolean debug = false;
-        @Description(description = {
+        @Comment(description = {
                 "This option will check the information coming in from the proxy (to synchronize the IP address of the incoming connection).",
                 "And help Limbo reject the target connection that is not from the proxy.",
                 "",
@@ -46,7 +46,7 @@ public class LimboConfig extends AbstractConfig {
                 "MODERN: (Unsupported now) Handle the forward from Velocity."
         })
         public ForwardHandler.ForwardMode forwardMode = ForwardHandler.ForwardMode.NONE;
-        @Description(description = {
+        @Comment(description = {
                 "The key for the MODERN or GUARD forwarding mode.",
                 "",
                 "GUARD: A string in the form of a key. (You can use \"|\" to separate multiple lines)",
@@ -55,13 +55,13 @@ public class LimboConfig extends AbstractConfig {
         public String forwardKey = "";
         @NotNull
         @SuppressWarnings("SpellCheckingInspection")
-        @Description(description = "overworld, nether, the_end")
+        @Comment(description = "overworld, nether, the_end")
         public World world = World.OVERWORLD;
         @NotNull public String brand = "<light_purple>Blessing</light_purple>";
         @NotNull public String playerName = "Blessing";
         public boolean disableFall = true;
         public long timeout = 30000;
-        @Description(description = "keep-alive delay")
+        @Comment(description = "keep-alive delay")
         public long delay = 10000;
         @NotNull public MotdConfig motd = new MotdConfig();
 
@@ -70,12 +70,12 @@ public class LimboConfig extends AbstractConfig {
         public static class MotdConfig extends AbstractConfig {
             public String description = "<light_purple>Blessing powered - Limbo <3";
             public String brand = "<light_purple>Blessing Powered";
-            @Description(description = "set player info to null.")
+            @Comment(description = "set player info to null.")
             public boolean unknown = false;
             public int max = 0;
             public int online = 0;
             public boolean showBrand = false;
-            @Description(description = {
+            @Comment(description = {
                     "empty to set null. available prefix:",
                     "[url] : get png file from url. (example: \"[url]https://example.com\")",
                     "[file] : get png file from file. (example: \"[file]server-icon.png\" will read the \"server-icon.png\" file in the directory opened by the shell)",
@@ -94,8 +94,8 @@ public class LimboConfig extends AbstractConfig {
             public double x = 7.5;
             public double y = 100;
             public double z = 7.5;
-            public float yaw = 180;
-            public float pitch = 0;
+            public int yaw = 180;
+            public int pitch = 0;
 
             public @NotNull PlayerPosition toPlayerPosition() {
                 return new PlayerPosition(new Position(x, y, z), yaw, pitch, false);
@@ -103,17 +103,18 @@ public class LimboConfig extends AbstractConfig {
         }
 
         @NotNull public JoinMessageConfig message = new JoinMessageConfig();
+        @NotNull public WhitelistConfig whitelist = new WhitelistConfig();
 
         @ParseAllField
         public static class JoinMessageConfig extends AbstractConfig {
 
-            @Description(description = {
+            @Comment(description = {
                     "Write the chat message for player that joining.",
                     "Set to empty to disable this feature."
             })
             @NotNull public List<String> chat = Collections.emptyList();
 
-            @Description(description = {
+            @Comment(description = {
                     "Write the actionbar message for player that joining.",
                     "This feature only works on 1.8+",
                     "",
@@ -121,7 +122,7 @@ public class LimboConfig extends AbstractConfig {
             })
             @NotNull public String actionBar = "";
 
-            @Description(description = {
+            @Comment(description = {
                     "Write the title message for player that joining.",
                     "This feature only works on 1.8+",
                     "",
@@ -139,7 +140,7 @@ public class LimboConfig extends AbstractConfig {
                 public int fadeOut = 0;
             }
 
-            @Description(description = "Configuration about tab header & footer. (Works on 1.8+)")
+            @Comment(description = "Configuration about tab header & footer. (Works on 1.8+)")
             @NotNull public TabConfig tab = new TabConfig();
 
             @ParseAllField
@@ -148,6 +149,16 @@ public class LimboConfig extends AbstractConfig {
                 @NotNull public List<String> header = Collections.emptyList();
                 @NotNull public List<String> footer = Collections.emptyList();
             }
+        }
+
+        @ParseAllField
+        @NoArgsConstructor(access = AccessLevel.PRIVATE)
+        public static class WhitelistConfig extends AbstractConfig {
+            public boolean enable = false;
+            @Comment(description = "If whitelist enabled and they don't exists in whitelist. Then send what kick message?")
+            public List<String> message = Collections.singletonList("This server is enabled whitelist!");
+            @Comment(description = "Name of players to whitelist.")
+            public  List<String> whitelisted = Collections.emptyList();
         }
 
     }
